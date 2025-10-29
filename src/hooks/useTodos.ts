@@ -24,13 +24,20 @@ const useTodos = () => {
 
   // Load todos from server on mount
   useEffect(() => {
-    setErrorMessage(ErrorMessage.Null);
+    const fetchTodos = async () => {
+      setErrorMessage(ErrorMessage.Null);
+      try {
+        const todosFromServer = await server.getTodos();
 
-    server
-      .getTodos()
-      .then(setTodos)
-      .catch(() => showError(ErrorMessage.LoadingTodos));
-  }, [setErrorMessage, showError]);
+        setTodos(todosFromServer);
+      } catch {
+        showError(ErrorMessage.LoadingTodos);
+      }
+    };
+
+    fetchTodos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!tempTodo) {

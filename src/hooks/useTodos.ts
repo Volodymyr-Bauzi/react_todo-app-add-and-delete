@@ -30,7 +30,7 @@ const useTodos = () => {
       .getTodos()
       .then(setTodos)
       .catch(() => showError(ErrorMessage.LoadingTodos));
-  }, []);
+  }, [setErrorMessage, showError]);
 
   useEffect(() => {
     if (!tempTodo) {
@@ -62,6 +62,7 @@ const useTodos = () => {
 
     if (!normalizedQuery) {
       showError(ErrorMessage.EmptyTitle);
+
       return;
     }
 
@@ -88,7 +89,10 @@ const useTodos = () => {
   // Handle deleting a todo
   const handleDelete = (todoId: Todo['id']) => {
     const foundTodo = todos.find(todo => todo.id === todoId);
-    if (!foundTodo) return;
+
+    if (!foundTodo) {
+      return;
+    }
 
     setTempTodo(foundTodo);
 
@@ -110,13 +114,13 @@ const useTodos = () => {
   };
 
   const handleDeleteAllCompleted = () => {
-    const todosToDelete = todos.filter(todo => {
+    const toDelete = todos.filter(todo => {
       return todo.completed;
     });
 
-    const idxs = todosToDelete.map(todo => todo.id);
+    const idxs = toDelete.map(todo => todo.id);
 
-    setTodosToDelete(todosToDelete);
+    setTodosToDelete(toDelete);
 
     idxs.forEach(todo => handleDelete(todo));
   };

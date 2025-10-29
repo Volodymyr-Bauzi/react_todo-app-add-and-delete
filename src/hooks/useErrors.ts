@@ -7,6 +7,14 @@ const useErrors = () => {
     ErrorMessage.LoadingTodos,
   );
 
+  const hideError = () => {
+    setShowErrorNotification(false);
+
+    setTimeout(() => {
+      setErrorMessage(ErrorMessage.Null);
+    }, 800);
+  };
+
   const showError = (errorMsg: ErrorMessage) => {
     setErrorMessage(errorMsg);
     setShowErrorNotification(true);
@@ -14,14 +22,6 @@ const useErrors = () => {
     setTimeout(() => {
       hideError();
     }, 4000);
-  };
-
-  const hideError = () => {
-    setShowErrorNotification(false);
-
-    setTimeout(() => {
-      setErrorMessage(ErrorMessage.Null);
-    }, 800);
   };
 
   return {
@@ -32,4 +32,5 @@ const useErrors = () => {
     setErrorMessage,
   };
 };
+
 export default useErrors;

@@ -24,7 +24,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     if (titleRef.current) {
       titleRef.current.focus();
     }
-  }, [titleRef.current]);
+  }, []);
 
   return (
     <div

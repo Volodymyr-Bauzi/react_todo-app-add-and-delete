@@ -18,6 +18,7 @@ export const Footer: React.FC<FooterProps> = ({
   onStatusChange,
 }) => {
   const completedTodo = todos?.filter(todo => todo.completed).length;
+
   return (
     <footer className="todoapp__footer" data-cy="Footer">
       <span className="todo-count" data-cy="TodosCounter">

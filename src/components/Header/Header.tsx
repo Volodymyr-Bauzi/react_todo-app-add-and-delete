@@ -19,6 +19,7 @@ const Header: React.FC<HeaderProps> = ({
   onSubmit,
 }) => {
   const completedTodo = todos?.filter(todo => todo.completed).length;
+
   return (
     <header className="todoapp__header">
       <button
@@ -44,4 +45,5 @@ const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
 export default Header;

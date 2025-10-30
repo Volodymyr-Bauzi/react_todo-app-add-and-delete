@@ -23,4 +23,4 @@ const deleteTodo = (todoId: number) => {
   return client.delete(`/todos/${todoId}`);
 };
 
-export const server = { getTodos, createTodo, editTodo, deleteTodo };
+export const todosService = { getTodos, createTodo, editTodo, deleteTodo };

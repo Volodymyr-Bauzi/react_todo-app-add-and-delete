@@ -19,11 +19,10 @@ export const App: React.FC = () => {
     addInputRef,
     errorMessage,
     filteredTodos,
-    todosToDelete,
-    showErrorNotification,
     hideError,
     handleSubmit,
     handleDelete,
+    getIsTodoLoading,
     handleQueryChange,
     handleStatusChange,
     handleDeleteAllCompleted,
@@ -50,7 +49,7 @@ export const App: React.FC = () => {
         <TodoList
           todos={filteredTodos}
           tempTodo={tempTodo}
-          todosToDelete={todosToDelete}
+          isLoading={getIsTodoLoading}
           onDelete={handleDelete}
         />
 
@@ -65,11 +64,7 @@ export const App: React.FC = () => {
         )}
       </div>
 
-      <ErrorNotification
-        errorMsg={errorMessage}
-        isErrorShown={showErrorNotification}
-        onHideError={hideError}
-      />
+      <ErrorNotification errorMsg={errorMessage} onHideError={hideError} />
     </div>
   );
 };

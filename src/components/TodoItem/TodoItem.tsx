@@ -4,16 +4,14 @@ import cn from 'classnames';
 
 export type TodoItemProps = {
   todo: Todo;
-  tempTodo: Todo | null;
-  todosToDelete?: Todo[] | null;
-  onDelete?: (todoId: number) => void;
+  isLoading: (todoId: Todo['id']) => boolean;
+  onDelete: (todoId: number) => void;
 };
 
 export const TodoItem: React.FC<TodoItemProps> = ({
   todo,
-  tempTodo,
-  todosToDelete,
-  onDelete = () => {},
+  isLoading,
+  onDelete,
 }) => {
   const [title, setTitle] = useState('');
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
@@ -76,10 +74,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
 
       <div
         data-cy="TodoLoader"
-        className={cn('modal overlay active', {
-          'is-active':
-            tempTodo?.id === todo.id ||
-            todosToDelete?.find(item => item.id === todo.id),
+        className={cn('modal overlay', {
+          'is-active': isLoading(todo.id),
         })}
       >
         <div className="modal-background has-background-white-ter" />

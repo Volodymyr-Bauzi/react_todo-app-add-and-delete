@@ -1,33 +1,30 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { Todo } from '../types/Todo';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { getFilteredTodos, Todo } from '../types/Todo';
 import { StatusFilter } from '../types/statusFilter';
 import { ErrorMessage } from '../types/error';
-import { server, USER_ID } from '../api/todos';
+import { todosService, USER_ID } from '../api/todos';
 import useErrors from './useErrors';
 
 const useTodos = () => {
+  // #region State
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [status, setStatus] = useState(StatusFilter.All);
+  const [loadingTodoIds, setLoadingTodoIds] = useState<number[]>([]);
   const [query, setQuery] = useState('');
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
-  const [status, setStatus] = useState<StatusFilter>(StatusFilter.All);
-  const [todosToDelete, setTodosToDelete] = useState<Todo[] | null>(null);
-
-  const {
-    errorMessage,
-    showErrorNotification,
-    showError,
-    hideError,
-    setErrorMessage,
-  } = useErrors();
+  const { errorMessage, showError, hideError } = useErrors();
 
   const addInputRef = useRef<HTMLInputElement>(null);
 
-  // Load todos from server on mount
+  // #endregion
+
+  // #region Effects
   useEffect(() => {
-    const fetchTodos = async () => {
-      setErrorMessage(ErrorMessage.Null);
+    const loadTodos = async () => {
+      showError(ErrorMessage.Null);
+
       try {
-        const todosFromServer = await server.getTodos();
+        const todosFromServer = await todosService.getTodos();
 
         setTodos(todosFromServer);
       } catch {
@@ -35,7 +32,7 @@ const useTodos = () => {
       }
     };
 
-    fetchTodos();
+    loadTodos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -43,94 +40,115 @@ const useTodos = () => {
     if (!tempTodo) {
       addInputRef.current?.focus();
     }
-  }, [tempTodo]);
+  }, [tempTodo, todos]);
 
-  // ✅ Corrected and optimized filtering logic
-  const filteredTodos = useMemo(() => {
-    return todos.filter(todo => {
-      if (status === StatusFilter.Completed) {
-        return todo.completed;
+  // #endregion
+
+  // #region Helpers
+  const filteredTodos = getFilteredTodos(todos, { status });
+
+  const todosLeft = useMemo(
+    () => todos.filter(todo => !todo.completed).length,
+    [todos],
+  );
+  // #endregion
+
+  // #region Handlers
+  const handleQueryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setQuery(e.target.value);
+    },
+    [],
+  );
+
+  const handleStatusChange = useCallback((newStatus: StatusFilter) => {
+    setStatus(newStatus);
+  }, []);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const normalizedQuery = query.trim();
+
+      if (!normalizedQuery) {
+        showError(ErrorMessage.EmptyTitle);
+
+        return;
       }
 
-      if (status === StatusFilter.Active) {
-        return !todo.completed;
-      }
+      const temporaryTodo: Todo = {
+        id: 0,
+        title: normalizedQuery,
+        completed: false,
+        userId: USER_ID,
+      };
 
-      return true; // explicit boolean for StatusFilter.All
-    });
-  }, [todos, status]);
+      setTempTodo(temporaryTodo);
+      setLoadingTodoIds([temporaryTodo.id]);
 
-  const todosLeft = todos.filter(todo => !todo.completed).length;
+      try {
+        const newTodo = await todosService.createTodo({
+          title: normalizedQuery,
+        });
 
-  // Handle new todo submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const normalizedQuery = query.trim();
-
-    if (!normalizedQuery) {
-      showError(ErrorMessage.EmptyTitle);
-
-      return;
-    }
-
-    // Temporary optimistic todo
-    setTempTodo({
-      title: normalizedQuery,
-      completed: false,
-      id: 0,
-      userId: USER_ID,
-    });
-
-    server
-      .createTodo({ title: normalizedQuery })
-      .then(newTodo => {
         setTodos(prev => [...prev, newTodo]);
         setQuery('');
-      })
-      .catch(() => showError(ErrorMessage.AddingTodo))
-      .finally(() => {
+      } catch {
+        showError(ErrorMessage.AddingTodo);
+      } finally {
         setTempTodo(null);
-      });
+        setLoadingTodoIds([]);
+      }
+    },
+    [query, showError],
+  );
+
+  const handleAddTodoToLoading = (todoId: Todo['id']) => {
+    setLoadingTodoIds(currentLoading => [...currentLoading, todoId]);
   };
 
-  // Handle deleting a todo
-  const handleDelete = (todoId: Todo['id']) => {
-    const foundTodo = todos.find(todo => todo.id === todoId);
+  const handleRemoveTodoFromLoading = (todoId: Todo['id']) => {
+    setLoadingTodoIds(currentLoading =>
+      currentLoading.filter(id => id !== todoId),
+    );
+  };
 
-    if (!foundTodo) {
+  const getIsTodoLoading = (todoId: Todo['id']) => {
+    return loadingTodoIds.includes(todoId);
+  };
+
+  const handleDelete = useCallback(
+    async (todoId: Todo['id']) => {
+      handleAddTodoToLoading(todoId);
+
+      await todosService
+        .deleteTodo(todoId)
+        .then(() => {
+          setTodos(prev => prev.filter(todo => todo.id !== todoId));
+        })
+        .catch(() => {
+          showError(ErrorMessage.DeletingTodo);
+        })
+        .finally(() => {
+          handleRemoveTodoFromLoading(todoId);
+        });
+    },
+    [showError],
+  );
+
+  const handleDeleteAllCompleted = useCallback(async () => {
+    const completedIds = todos.filter(t => t.completed).map(t => t.id);
+
+    if (completedIds.length === 0) {
       return;
     }
 
-    setTempTodo(foundTodo);
-
-    server
-      .deleteTodo(todoId)
-      .then(() => setTodos(prev => prev.filter(todo => todo.id !== todoId)))
-      .catch(() => showError(ErrorMessage.DeletingTodo))
-      .finally(() => setTempTodo(null));
-  };
-
-  // Handle input query changes
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(e.target.value);
-  };
-
-  // Handle filter status (All, Active, Completed)
-  const handleStatusChange = (newStatus: StatusFilter) => {
-    setStatus(newStatus);
-  };
-
-  const handleDeleteAllCompleted = () => {
-    const toDelete = todos.filter(todo => {
-      return todo.completed;
-    });
-
-    const idxs = toDelete.map(todo => todo.id);
-
-    setTodosToDelete(toDelete);
-
-    idxs.forEach(todo => handleDelete(todo));
-  };
+    setLoadingTodoIds(completedIds);
+    // filter out only resolved todos and keep only failed
+    await Promise.all(completedIds.map(id => handleDelete(id)));
+    setLoadingTodoIds([]);
+  }, [todos, handleDelete]);
+  // #endregion
 
   return {
     todos,
@@ -139,16 +157,19 @@ const useTodos = () => {
     tempTodo,
     todosLeft,
     addInputRef,
-    errorMessage,
+
     filteredTodos,
-    todosToDelete,
-    showErrorNotification,
-    handleDeleteAllCompleted,
+    getIsTodoLoading,
+
+    errorMessage,
+    showError,
     hideError,
+
     handleSubmit,
     handleDelete,
     handleQueryChange,
     handleStatusChange,
+    handleDeleteAllCompleted,
   };
 };
 

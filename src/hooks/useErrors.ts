@@ -1,35 +1,33 @@
-import { useState } from 'react';
-import { ErrorMessage } from '../types/error';
+import { useEffect, useState } from 'react';
+import { ERROR_MESSAGES, ErrorMessage } from '../types/error';
 
-const useErrors = () => {
-  const [showErrorNotification, setShowErrorNotification] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<ErrorMessage>(
-    ErrorMessage.LoadingTodos,
+const useErrors = (duration = 3000) => {
+  const [errorMessage, setErrorMessage] = useState(
+    ERROR_MESSAGES[ErrorMessage.Null],
   );
 
-  const hideError = () => {
-    setShowErrorNotification(false);
-
-    setTimeout(() => {
-      setErrorMessage(ErrorMessage.Null);
-    }, 800);
-  };
-
   const showError = (errorMsg: ErrorMessage) => {
-    setErrorMessage(errorMsg);
-    setShowErrorNotification(true);
-
-    setTimeout(() => {
-      hideError();
-    }, 4000);
+    setErrorMessage(ERROR_MESSAGES[errorMsg]);
   };
+
+  const hideError = () => {
+    setErrorMessage(ERROR_MESSAGES[ErrorMessage.Null]);
+  };
+
+  useEffect(() => {
+    if (!errorMessage) {
+      return;
+    }
+
+    const timer = setTimeout(hideError, duration);
+
+    return () => clearTimeout(timer);
+  }, [errorMessage, duration]);
 
   return {
     errorMessage,
-    showErrorNotification,
     showError,
     hideError,
-    setErrorMessage,
   };
 };
 

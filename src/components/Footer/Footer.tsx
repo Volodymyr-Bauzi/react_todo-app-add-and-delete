@@ -1,4 +1,4 @@
-import { StatusFilter } from '../../types/statusFilter';
+import { STATUS_FILTER_OPTIONS, StatusFilter } from '../../types/statusFilter';
 import cn from 'classnames';
 import { Todo } from '../../types/Todo';
 
@@ -26,38 +26,21 @@ export const Footer: React.FC<FooterProps> = ({
       </span>
 
       <nav className="filter" data-cy="Filter">
-        <a
-          href={`#/${StatusFilter.All}`}
-          className={cn('filter__link', {
-            selected: status === StatusFilter.All,
-          })}
-          data-cy="FilterLinkAll"
-          onClick={() => onStatusChange(StatusFilter.All)}
-        >
-          All
-        </a>
-
-        <a
-          href={`#/${StatusFilter.Active}`}
-          className={cn('filter__link', {
-            selected: status === StatusFilter.Active,
-          })}
-          data-cy="FilterLinkActive"
-          onClick={() => onStatusChange(StatusFilter.Active)}
-        >
-          Active
-        </a>
-
-        <a
-          href={`#/${StatusFilter.Completed}`}
-          className={cn('filter__link', {
-            selected: status === StatusFilter.Completed,
-          })}
-          data-cy="FilterLinkCompleted"
-          onClick={() => onStatusChange(StatusFilter.Completed)}
-        >
-          Completed
-        </a>
+        {Object.entries(STATUS_FILTER_OPTIONS).map(
+          ([option, { href, testId, text }]) => (
+            <a
+              key={option}
+              href={href}
+              className={cn('filter__link', {
+                selected: status === option,
+              })}
+              data-cy={testId}
+              onClick={() => onStatusChange(option as StatusFilter)}
+            >
+              {text}
+            </a>
+          ),
+        )}
       </nav>
 
       <button
